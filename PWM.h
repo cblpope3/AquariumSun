@@ -3,14 +3,15 @@
 
 #include <Adafruit_PWMServoDriver.h>
 #include <TimeLib.h>
-//#include "ledAddress.h"
+#include <EEPROM.h>
+#include "EEPROM_memory.h"
 
 #define LEDCONTROLLER_DEBUG
-#define NIGHT_DEBUG
-#define SUNRISE_DEBUG
-#define DAY_DEBUG
-#define SUNSET_DEBUG
-#define MASSRGBCHANGE_DEBUG
+//#define NIGHT_DEBUG
+//#define SUNRISE_DEBUG
+//#define DAY_DEBUG
+//#define SUNSET_DEBUG
+//#define MASSRGBCHANGE_DEBUG
 
 //################################
 #define R0 0
@@ -46,6 +47,9 @@
 #define AUTO 1
 #define MANUAL 2
 
+#define PWM_FREQUENCY 0
+#define CONTROL_MODE 1
+
 #define NIGHT 0
 #define SUNRISE 1
 #define DAY 2
@@ -56,9 +60,11 @@ class LedController{
     uint8_t controlMode;
     
     void initialize(void);
-    void setNewDayTimes(uint16_t *newTimesArray);
+    void setNewDayTimes(uint8_t *newTimesArray);
     void lightHandle(time_t currentTime);
     void AllOn(void);
+    void setNewBrightness(uint8_t *newBrightArray);
+    void setOtherParameter(uint8_t paramNum, uint16_t paramValue);
     //void setControlMode(uint8_t newControlMode);
 
   private:
@@ -66,9 +72,11 @@ class LedController{
     Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(0x41);
     uint16_t phaseBeginMinutes[4], phaseDurationMinutes[4];
     uint8_t phasesOrder[4];
+    //minutesNight, minutesSunrise, minutesDay, minutesSunset;
+    //    uint16_t nightDuration, sunriseDuration, dayDuration, sunsetDuration;
     uint8_t rMaxBright, gMaxBright, bMaxBright, wMaxBright, nightMaxBright;
     
-    float pwmFrequency = 100;
+    float pwmFrequency;// = 100;
 
     void realisticDayLight(time_t currentTime);
     void nightLight(uint8_t phase);

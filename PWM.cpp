@@ -1,22 +1,46 @@
 #include "PWM.h"
 
-void LedController::AllOn(void){
-  uint8_t ledArray[32], arrayCount;
-  uint16_t newBrightArray[32];
-
-  for (int i=0; i<32; i++) {
-    ledArray[i] = i;
-    newBrightArray[i] = 0xFFF;
-  }
-  arrayCount = 32;
-  
-  LedController::massLedChange(ledArray, arrayCount, newBrightArray);
-}
-
 void LedController::initialize(void){
   
   pwm1.begin();
   pwm2.begin();
+
+  //Restoring settings from EERPOM
+  LedController::rMaxBright = EEPROM.read(EERMAXBRIGHT);//0xFF;
+  LedController::gMaxBright = EEPROM.read(EEGMAXBRIGHT);//0xFF;
+  LedController::bMaxBright = EEPROM.read(EEBMAXBRIGHT);//0xFF;
+  LedController::wMaxBright = EEPROM.read(EEWMAXBRIGHT);//0xFF;
+  LedController::nightMaxBright = EEPROM.read(EENMAXBRIGHT);//0x3F;
+  for (int i=0;i<4;i++){
+    LedController::phasesOrder[i] = EEPROM.read(EEPHORDER + i);
+    
+    LedController::phaseBeginMinutes[i] = EEPROM.read(EEPHBEGIN + 2*i)|(EEPROM.read(EEPHBEGIN + 2*i + 1)<<8);
+    LedController::phaseDurationMinutes[i] = EEPROM.read(EEPHDURATION + 2*i)|(EEPROM.read(EEPHDURATION + 2*i+1)<<8);
+  }
+  LedController::controlMode = EEPROM.read(EECONTROLMODE);
+  LedController::pwmFrequency = EEPROM.read(EEPWMFREQ)|(EEPROM.read(EEPWMFREQ+1)<<8);
+
+  #ifdef EEPROM_DEBUG
+    Serial.println("Restored data from EEPROM:");
+    Serial.print(" phases order: ");
+    for (int i=0; i<4; i++) {
+      Serial.print(phasesOrder[i]);
+      Serial.print(", ");
+    }
+    Serial.print("\n phases begin: ");
+    for (int i=0; i<4; i++) {
+      Serial.print(phaseBeginMinutes[i]);
+      Serial.print(", ");
+    }
+    Serial.print("\n phases duration: ");
+    for (int i=0; i<4; i++) {
+      Serial.print(phaseDurationMinutes[i]);
+      Serial.print(", ");
+    }
+    Serial.println("\nControl mode is: "+String(controlMode));
+    Serial.println("Frequency of PWM generator is: "+String(pwmFrequency));
+  #endif
+  
   pwm1.setPWMFreq(pwmFrequency);
   pwm2.setPWMFreq(pwmFrequency);
   for (int i=0; i<16; i++) {
@@ -24,25 +48,20 @@ void LedController::initialize(void){
     pwm2.setPWM(i, 0, 0);
   }
 
-  //__________________________________________________________
-  //      REMEMBER TO IMPLEMENT SAVING PARAMS IN EEPROM_MEMORY
-  //__________________________________________________________
-  LedController::rMaxBright = 0xFF;
-  LedController::gMaxBright = 0xFF;
-  LedController::bMaxBright = 0xFF;
-  LedController::wMaxBright = 0xFF;
-  LedController::nightMaxBright = 0x3F;
-    
   #ifdef LEDCONTROLLER_DEBUG
   Serial.println("Led controller initialized!");
   #endif
 }
 
-void LedController::setNewDayTimes(uint16_t *newTimesArray){
-  uint8_t tmpArr[4] = {1,2,3,0}, tmp, latestPhase;
+void LedController::setNewDayTimes(uint8_t *newTimesArray){
+  uint8_t tmpArr[4], tmp=0, latestPhase;
 
   //Calculation begining of phases
   for (int i=0; i<4; i++) LedController::phaseBeginMinutes[i] = newTimesArray[2*i]*60 + newTimesArray[2*i+1];
+
+  #ifdef LEDCONTROLLER_DEBUG
+  for (int i=0; i<4; i++) Serial.println("Calculated phase " + String(i)+" beginig is "+String(phaseBeginMinutes[i]));
+  #endif
 
   //find out the latest phase of whole day
   for (int i=0; i<4; i++){
@@ -52,6 +71,10 @@ void LedController::setNewDayTimes(uint16_t *newTimesArray){
     }
   }
 
+  #ifdef LEDCONTROLLER_DEBUG
+  Serial.println("Calculated latest phase of day is: " + String(latestPhase));
+  #endif
+
   //fill array of phases in correct order
   LedController::phasesOrder[3] = latestPhase;
   for (int i=0; i<3; i++){
@@ -59,24 +82,101 @@ void LedController::setNewDayTimes(uint16_t *newTimesArray){
     if(LedController::phasesOrder[i] > 3) LedController::phasesOrder[i]-=4;
   }
 
+  #ifdef LEDCONTROLLER_DEBUG
+  Serial.println("Calculated phases of day is: " + String(phasesOrder[0]) + String(phasesOrder[1]) + String(phasesOrder[2])+String(phasesOrder[3]));
+  #endif
+
   //Calculation duration of phases
   phaseDurationMinutes[phasesOrder[3]] = phaseBeginMinutes[phasesOrder[0]] + 1440 - phaseBeginMinutes[phasesOrder[3]];
   for (int i=0; i<3; i++) phaseDurationMinutes[phasesOrder[i]] = phaseBeginMinutes[phasesOrder[i+1]] - phaseBeginMinutes[phasesOrder[i]];
-  
-  //__________________________________________________________
-  //      REMEMBER TO IMPLEMENT SAVING PARAMS IN EEPROM_MEMORY
-  //__________________________________________________________
+
+  for (int i=0;i<4;i++){
+    tmpArr[0] = phaseBeginMinutes[i]&0xFF;
+    tmpArr[1] = phaseBeginMinutes[i]>>8;
+    tmpArr[2] = phaseDurationMinutes[i]&0xFF;
+    tmpArr[3] = phaseDurationMinutes[i]>>8;
+    
+    EEPROM.write(EEPHORDER + i, phasesOrder[i]);
+    
+    EEPROM.write(EEPHBEGIN + 2*i, tmpArr[0]);
+    EEPROM.write(EEPHBEGIN + 2*i+1, tmpArr[1]);
+
+    EEPROM.write(EEPHDURATION + 2*i, tmpArr[2]);
+    EEPROM.write(EEPHDURATION + 2*i+1, tmpArr[3]);
+  }
+  if (EEPROM.commit()) {
+    #ifdef EEPROM_DEBUG
+    Serial.println("New day times saved in EEPROM");
+    #endif
+  } else {
+    #ifdef EEPROM_DEBUG
+    Serial.println("ERROR! Saving new day times in EEPROM failed");
+    #endif
+  }
 
   #ifdef LEDCONTROLLER_DEBUG
-  Serial.print("New day routine applied:\nDay starts at " + String(LedController::phaseBeginMinutes[DAY]));
-  Serial.println(" minutes and lasts " + String(LedController::phaseDurationMinutes[DAY]) + " minutes");
-  Serial.print("Sunset starts at " + String(LedController::phaseBeginMinutes[SUNSET]));
-  Serial.println(" minutes and lasts " + String(LedController::phaseDurationMinutes[SUNSET]) + " minutes");
+  Serial.println("New day routine applied:");
   Serial.print("Night starts at " + String(LedController::phaseBeginMinutes[NIGHT]));
   Serial.println(" minutes and lasts " + String(LedController::phaseDurationMinutes[NIGHT]) + " minutes");
   Serial.print("Sunrise starts at " + String(LedController::phaseBeginMinutes[SUNRISE]));
   Serial.println(" minutes and lasts " + String(LedController::phaseDurationMinutes[SUNRISE]) + " minutes");
+  Serial.print("Day starts at " + String(LedController::phaseBeginMinutes[DAY]));
+  Serial.println(" minutes and lasts " + String(LedController::phaseDurationMinutes[DAY]) + " minutes");
+  Serial.print("Sunset starts at " + String(LedController::phaseBeginMinutes[SUNSET]));
+  Serial.println(" minutes and lasts " + String(LedController::phaseDurationMinutes[SUNSET]) + " minutes");
+
   #endif
+}
+
+void LedController::setNewBrightness(uint8_t *newBrightArray){
+  rMaxBright = newBrightArray[0];
+  gMaxBright = newBrightArray[1];
+  bMaxBright = newBrightArray[2];
+  wMaxBright = newBrightArray[3];
+  nightMaxBright = newBrightArray[4];
+
+  EEPROM.write(EERMAXBRIGHT, LedController::rMaxBright);
+  EEPROM.write(EEGMAXBRIGHT, LedController::gMaxBright);
+  EEPROM.write(EEBMAXBRIGHT, LedController::bMaxBright);
+  EEPROM.write(EEWMAXBRIGHT, LedController::wMaxBright);
+  EEPROM.write(EENMAXBRIGHT, LedController::nightMaxBright);
+
+  if (EEPROM.commit()) {
+    #ifdef EEPROM_DEBUG
+    Serial.println("New brightness saved in EEPROM");
+    #endif
+  } else {
+    #ifdef EEPROM_DEBUG
+    Serial.println("ERROR! New brightness EEPROM commit failed");
+    #endif
+  }
+}
+
+void LedController::setOtherParameter(uint8_t paramNum, uint16_t paramValue){
+  switch (paramNum) {
+    case PWM_FREQUENCY:
+      //setting new PWM frequency
+      pwmFrequency = float(paramValue);
+      EEPROM.write(EEPWMFREQ, paramValue&0xFF);
+      EEPROM.write(EEPWMFREQ+1, paramValue>>8);
+      break;
+    case CONTROL_MODE:
+      //setting new control mode
+      controlMode = uint8_t(paramValue);
+      EEPROM.write(EECONTROLMODE, LedController::controlMode);
+      break;
+    default:
+      break;
+  }
+  if (EEPROM.commit()) {
+    #ifdef EEPROM_DEBUG
+    Serial.println("Parameter " + String(paramNum) + " saved in EEPROM");
+    #endif
+  } else {
+    #ifdef EEPROM_DEBUG
+    Serial.println("ERROR! " + String(paramNum) + " saving parameter in EEPROM failed");
+    #endif
+  }
 }
 
 void LedController::lightHandle(time_t currentTime){
@@ -452,7 +552,6 @@ void LedController::massLedChange(uint8_t *ledArray, uint8_t arrayCount, uint16_
   for (int i=0; i<arrayCount; i++) currentBrightArray[i] = getLedBright(ledArray[i]);
 
   while(1){
-    //ledsCompleted=0;
     for (int i=0; i<arrayCount; i++){
       //skip iteration if led is already done
       if (completedLeds[i]) continue;
@@ -501,4 +600,17 @@ uint16_t LedController::getLedBright(uint8_t ledNum){
     ledNum -= 16;
     return pwm2.getPWM(ledNum);
   }
+}
+
+void LedController::AllOn(void){
+  uint8_t ledArray[32], arrayCount;
+  uint16_t newBrightArray[32];
+
+  for (int i=0; i<32; i++) {
+    ledArray[i] = i;
+    newBrightArray[i] = 0xFFF;
+  }
+  arrayCount = 32;
+  
+  LedController::massLedChange(ledArray, arrayCount, newBrightArray);
 }

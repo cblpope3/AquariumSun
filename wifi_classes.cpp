@@ -141,6 +141,5 @@ time_t WiFi_operations::getTime(void){
     Serial.println(epoch % 60); // print the second
     #endif
   } else receivedTime = 0;
-    
   return receivedTime;
 }

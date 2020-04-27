@@ -1,17 +1,27 @@
+#ifndef _WIFI_CLASSES
+#define _WIFI_CLASSES
+
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <TimeLib.h>
 
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+
+#include "htmlPage.h"
+
 #define WIFI_DEBUG
 //#define NTP_DEBUG
+#define STA_DEBUG
 
 class WiFi_operations {
   public:
     bool connectToWifi(String ssid, String pass);
     time_t getTime(void);
-    //IPAddress STAIp;//(192, 168, 1, 100); // where xx is the desired IP Address - most sets of numbers 
-    // likely will match gateway, must be unique IP address
-    //IPAddress STAGateway;//(192, 168, 1, 1); // set gateway to match your network
-    //IPAddress STASubnet;//(255, 255, 255, 0);
+
   private:
 };
+
+#endif

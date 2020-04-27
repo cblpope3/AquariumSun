@@ -1,3 +1,6 @@
+#ifndef _EEPROM_memory
+#define _EEPROM_memory
+
 #define EEPROM_DEBUG
 
 #define EERMAXBRIGHT  0
@@ -12,3 +15,5 @@
 #define EECONTROLMODE 27
 
 #define EE_MAX_ADDRESS 27
+
+#endif

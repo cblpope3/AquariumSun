@@ -53,11 +53,11 @@ void LedController::initialize(void){
   #endif
 }
 
-void LedController::setNewDayTimes(uint8_t *newTimesArray){
-  uint8_t tmpArr[4], tmp=0, latestPhase;
+void LedController::setNewDayTimes(uint16_t *newTimesArray){
+  uint8_t latestPhase;
 
   //Calculation begining of phases
-  for (int i=0; i<4; i++) LedController::phaseBeginMinutes[i] = newTimesArray[2*i]*60 + newTimesArray[2*i+1];
+  for (int i=0; i<4; i++) phaseBeginMinutes[i] = newTimesArray[i];
 
   #ifdef LEDCONTROLLER_DEBUG
   for (int i=0; i<4; i++) Serial.println("Calculated phase " + String(i)+" beginig is "+String(phaseBeginMinutes[i]));
@@ -65,6 +65,7 @@ void LedController::setNewDayTimes(uint8_t *newTimesArray){
 
   //find out the latest phase of whole day
   for (int i=0; i<4; i++){
+    uint8_t tmp=0;
     if (phaseBeginMinutes[i]>tmp){
       tmp = phaseBeginMinutes[i];
       latestPhase = i;
@@ -90,30 +91,6 @@ void LedController::setNewDayTimes(uint8_t *newTimesArray){
   phaseDurationMinutes[phasesOrder[3]] = phaseBeginMinutes[phasesOrder[0]] + 1440 - phaseBeginMinutes[phasesOrder[3]];
   for (int i=0; i<3; i++) phaseDurationMinutes[phasesOrder[i]] = phaseBeginMinutes[phasesOrder[i+1]] - phaseBeginMinutes[phasesOrder[i]];
 
-  for (int i=0;i<4;i++){
-    tmpArr[0] = phaseBeginMinutes[i]&0xFF;
-    tmpArr[1] = phaseBeginMinutes[i]>>8;
-    tmpArr[2] = phaseDurationMinutes[i]&0xFF;
-    tmpArr[3] = phaseDurationMinutes[i]>>8;
-    
-    EEPROM.write(EEPHORDER + i, phasesOrder[i]);
-    
-    EEPROM.write(EEPHBEGIN + 2*i, tmpArr[0]);
-    EEPROM.write(EEPHBEGIN + 2*i+1, tmpArr[1]);
-
-    EEPROM.write(EEPHDURATION + 2*i, tmpArr[2]);
-    EEPROM.write(EEPHDURATION + 2*i+1, tmpArr[3]);
-  }
-  if (EEPROM.commit()) {
-    #ifdef EEPROM_DEBUG
-    Serial.println("New day times saved in EEPROM");
-    #endif
-  } else {
-    #ifdef EEPROM_DEBUG
-    Serial.println("ERROR! Saving new day times in EEPROM failed");
-    #endif
-  }
-
   #ifdef LEDCONTROLLER_DEBUG
   Serial.println("New day routine applied:");
   Serial.print("Night starts at " + String(LedController::phaseBeginMinutes[NIGHT]));
@@ -124,8 +101,50 @@ void LedController::setNewDayTimes(uint8_t *newTimesArray){
   Serial.println(" minutes and lasts " + String(LedController::phaseDurationMinutes[DAY]) + " minutes");
   Serial.print("Sunset starts at " + String(LedController::phaseBeginMinutes[SUNSET]));
   Serial.println(" minutes and lasts " + String(LedController::phaseDurationMinutes[SUNSET]) + " minutes");
-
   #endif
+}
+
+String LedController::getParam(uint8_t param){
+  String output="";
+  switch (param){
+    case DAY_PH_DUR:
+      output += String(phaseDurationMinutes[DAY]/60);
+      output += ":";
+      output += String(phaseDurationMinutes[DAY]%60);
+      return output;
+    case DAY_PH_END:
+      output += String(phaseBeginMinutes[((DAY+1)<4)?DAY+1:DAY-3]/60);
+      output += ":";
+      output += String(phaseBeginMinutes[((DAY+1)<4)?DAY+1:DAY-3]%60);
+      return output;
+    case PH_CHANGE_DUR:
+      output += String(phaseDurationMinutes[SUNRISE]/60);
+      output += ":";
+      output += String(phaseDurationMinutes[SUNRISE]%60);
+      return output;
+    case RMAX:
+      output += String(rMaxBright);
+      return output;
+    case GMAX:
+      output += String(gMaxBright);
+      return output;
+    case BMAX:
+      output += String(bMaxBright);
+      return output;
+    case WMAX:
+      output += String(wMaxBright);
+      return output;
+    case NMAX:
+      output += String(nightMaxBright);
+      return output;
+    case FREQ:
+      output += String(pwmFrequency);
+      return output;
+    default:
+      output += "#error";
+      return output;
+  }
+  
 }
 
 void LedController::setNewBrightness(uint8_t *newBrightArray){
@@ -279,6 +298,7 @@ void LedController::nightLight(uint8_t phase){
 
   return;
 }
+
 void LedController::sunriseLight(uint8_t phase){
   uint8_t ledArray[7]={1,2,3,4,5,6,7}, r,g,b,w;
   uint16_t brightArray[7];
@@ -328,6 +348,7 @@ void LedController::sunriseLight(uint8_t phase){
   LedController::massRGBLedChange(ledArray, 7, brightArray, currentColor);
   return;
 }
+
 void LedController::dayLight(uint8_t phase){
   uint8_t ledArray[7]={1,2,3,4,5,6,7};
   uint16_t brightArray[7];
@@ -345,6 +366,7 @@ void LedController::dayLight(uint8_t phase){
   LedController::massRGBLedChange(ledArray, 7, brightArray, currentColor);
   return;
 }
+
 void LedController::sunsetLight(uint8_t phase){
   uint8_t ledArray[7]={1,2,3,4,5,6,7}, r, g, b, w;
   uint16_t brightArray[7];
@@ -379,7 +401,6 @@ void LedController::sunsetLight(uint8_t phase){
   tmpBrightArray[4] = maxBright * ((210-tmpPhase)/42);
   tmpBrightArray[5] = maxBright * ((255-tmpPhase)/42);
   tmpBrightArray[6] = 0;
-
 
   for (int i=0; i<7; i++) brightArray[i] = constrain(tmpBrightArray[i], 0, 0xFFF);
 
@@ -472,7 +493,7 @@ void LedController::massRGBLedChange (uint8_t *ledArray, uint8_t arrayCount, uin
   Serial.println("  led index array calculated");
   #endif
   
-  LedController::massLedChangeTurn(outputLedArray, outputArrayCount, newBrightArray);
+  LedController::massLedChangeSimple(outputLedArray, outputArrayCount, newBrightArray);
   
   return;
 }
@@ -484,12 +505,20 @@ void LedController::yellowControl(uint8_t brightness){
   LedController::massLedChange(ledArray, arrayCount, newBrightArray);
   return;
 }
+
 void LedController::redSattelitesControl(uint8_t brightness){
   uint8_t arrayCount=2, ledArray[2]={R0, R7};
   uint16_t newBrightArray[2];
   for (int i=0;i<2;i++) newBrightArray[i] = map(brightness, 0, 0xFF, 0, 0xFF);
   LedController::massLedChange(ledArray, arrayCount, newBrightArray);
   return;
+}
+
+void LedController::massLedChangeSimple(uint8_t *ledArray, uint8_t arrayCount, uint16_t *newBrightArray){
+  //changing brightness one led by one
+  for (int i=0; i<arrayCount; i++){
+    setLedBright(ledArray[i], newBrightArray[i]);
+  }
 }
 
 void LedController::massLedChangeTurn(uint8_t *ledArray, uint8_t arrayCount, uint16_t *newBrightArray){
@@ -587,6 +616,7 @@ void LedController::massLedChange(uint8_t *ledArray, uint8_t arrayCount, uint16_
     if(iterationCounter>1000) return;
   }
 }
+
 void LedController::setLedBright(uint8_t ledNum, uint16_t newBright){
   if (ledNum>15) {
     ledNum-=16;
@@ -594,6 +624,7 @@ void LedController::setLedBright(uint8_t ledNum, uint16_t newBright){
   } else pwm1.setPWM(ledNum, 0, newBright);
   return;  
 }
+
 uint16_t LedController::getLedBright(uint8_t ledNum){
   if (ledNum<16) return pwm1.getPWM(ledNum);
   else {

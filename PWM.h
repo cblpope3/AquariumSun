@@ -55,28 +55,38 @@
 #define DAY 2
 #define SUNSET 3
 
+#define DAY_PH_DUR 0
+#define DAY_PH_END 1
+#define PH_CHANGE_DUR 2
+#define RMAX 3
+#define GMAX 4
+#define BMAX 5
+#define WMAX 6
+#define NMAX 7
+#define FREQ 8
+#define CON_MODE 9
+
 class LedController{
   public:
     uint8_t controlMode;
     
     void initialize(void);
-    void setNewDayTimes(uint8_t *newTimesArray);
+    void setNewDayTimes(uint16_t *newTimesArray);
     void lightHandle(time_t currentTime);
     void AllOn(void);
     void setNewBrightness(uint8_t *newBrightArray);
     void setOtherParameter(uint8_t paramNum, uint16_t paramValue);
-    //void setControlMode(uint8_t newControlMode);
+    String getParam(uint8_t param);
 
   private:
     Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x40);
     Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(0x41);
     uint16_t phaseBeginMinutes[4], phaseDurationMinutes[4];
     uint8_t phasesOrder[4];
-    //minutesNight, minutesSunrise, minutesDay, minutesSunset;
-    //    uint16_t nightDuration, sunriseDuration, dayDuration, sunsetDuration;
+
     uint8_t rMaxBright, gMaxBright, bMaxBright, wMaxBright, nightMaxBright;
     
-    float pwmFrequency;// = 100;
+    float pwmFrequency;
 
     void realisticDayLight(time_t currentTime);
     void nightLight(uint8_t phase);
@@ -88,6 +98,7 @@ class LedController{
     void redSattelitesControl(uint8_t brightness);
 
     void massRGBLedChange (uint8_t *ledArray, uint8_t arrayCount, uint16_t *brightArray, uint32_t color);
+    void massLedChangeSimple(uint8_t *ledArray, uint8_t arrayCount, uint16_t *newBrightArray);
     void massLedChangeTurn(uint8_t *ledArray, uint8_t arrayCount, uint16_t *newBrightArray);
     void massLedChange(uint8_t *ledArray, uint8_t arrayCount, uint16_t *newBrightArray);
     

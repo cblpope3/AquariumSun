@@ -5,7 +5,6 @@ bool WiFi_operations::connectToWifi(String ssid, String pass){
   const uint8_t connectionTimeout = 30;
   
   // set subnet mask to match your network
-  //WiFi.config(STAIp, STAGateway, STASubnet);
   WiFi.mode(WIFI_STA);
   
   if (ssid.length()){

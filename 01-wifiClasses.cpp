@@ -1,4 +1,4 @@
-#include "wifi_classes.h"
+#include "01-wifiClasses.h"
 
 bool WiFi_operations::connectToWifi(String ssid, String pass){
   uint8_t tryCount = 0;
@@ -87,7 +87,6 @@ time_t WiFi_operations::getTime(void){
   udp.write(packetBuffer, NTP_PACKET_SIZE);
   udp.endPacket();
   
-  yield();
   delay(1000);
   
   int cb = udp.parsePacket();

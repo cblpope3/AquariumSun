@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>AQUAled</h1><h4>CONTROL PANEL</h4>
+<h2>TIME SETTINGS</h2>
+<h2>
+#TIME
+</h2>
+<form action='/newtiming/' method='post'>
+  <p>Day phase duration</p>      
+  <input type='text' value='
+#DPHDUR
+' name='daydur'>
+  <p>Day phase end time</p>  
+  <input type='text' value='
+#DAYEND
+' name='dayend'>
+  <p>Phase change duration</p>
+  <input type='text' value='
+#PHCHANGE
+' name='phchange'>
+  <input type='submit' value='Apply'>
+</form>
+
+<h2>LED SETTINGS</h2>
+<form action='/newbright/' method='post'>
+  <p>Red maximum</p>      
+  <input type='text' value='
+#255
+' name='rmax'>
+  <p>Green maximum</p>  
+  <input type='text' value='
+#255
+' name='gmax'>
+  <p>Blue maximum</p>
+  <input type='text' value='
+#255
+' name='bmax'>
+  <p>White maximum</p>  
+  <input type='text' value='
+#255
+' name='wmax'>
+  <p>Night maximum</p>  
+  <input type='text' value='
+#255
+' name='nmax'>
+  <input type='submit' value='Apply'>
+</form>
+
+<h2>OTHER SETTINGS</h2>
+<form  action='/newfreq/' method='post'>
+  <p>PWM frequency, Hz</p>      
+  <input type='text' value='
+#150
+' name='pwmfr'>
+  <input type='submit' value='Apply'>
+</form>
+
+<form  action='/newcmode/' method='post'>
+  <p>Control mode</p>
+  <input type='radio' name='cmode' value='
+#AUTO
+' 
+#checked
+>
+  <label>Auto</label>
+  <input type='radio' name='cmode' value='
+#MANUAL
+'
+#checked
+>
+  <label>Manual</label>
+  <input type='submit' value='Apply'>
+</form>
+
+<h4>ESP8266 data:</h4>
+<p>Last reset reason:
+#reset reason
+<br>Free RAM:
+#free ram
+<br>Maximum RAM block:
+#max block
+<br>
+</p>
+</body>
+</html>

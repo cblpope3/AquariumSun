@@ -2,11 +2,10 @@
 #define _HTML_PAGE
 
 #include <Arduino.h>
-#include "PWM.h"
+#include <TimeLib.h>
 
-String makeMainHtmlPage(int value);
-
-extern LedController leds;
-//String makeSettingsHtmlPage(void);
+String makeMainHtmlPage(void);
+String makeHtmlHeader (void);
+String makeHtmlFooter (void);
 
 #endif

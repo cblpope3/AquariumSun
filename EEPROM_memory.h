@@ -1,7 +1,7 @@
 #ifndef _EEPROM_memory
 #define _EEPROM_memory
 
-#define EEPROM_DEBUG
+//#define EEPROM_DEBUG
 
 #define EERMAXBRIGHT  0
 #define EEGMAXBRIGHT  1

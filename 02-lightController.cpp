@@ -263,12 +263,11 @@ String LightController::getParam(uint8_t param){
     default:
       output += "#error";
       return output;
-  }
+  }  
 }
 
 void LightController::realisticDayLight(time_t currentTime){
   //this function calculating current phase of day and fragment of current phase
-
   uint16_t minutes = hour(currentTime)*60 + minute(currentTime);
 
   #ifdef LIGHTCONTROLLER_DEBUG
@@ -282,7 +281,7 @@ void LightController::realisticDayLight(time_t currentTime){
   else if (minutes >= LightController::phaseBeginMinutes[phasesOrder[1]]) currentPhase = phasesOrder[1];
   else if (minutes >= LightController::phaseBeginMinutes[phasesOrder[0]]) currentPhase = phasesOrder[0];
   else currentPhase = phasesOrder[3];
-
+  curPhase = currentPhase;
   #ifdef LIGHTCONTROLLER_DEBUG
     Serial.println("  Phase is " + String(currentPhase));
   #endif
@@ -291,15 +290,15 @@ void LightController::realisticDayLight(time_t currentTime){
   uint16_t phaseFragment;
   if (currentPhase == phasesOrder[3]){
     //phase in corner of day
-    if(minutes >= phaseBeginMinutes[phasesOrder[3]]) phaseFragment = minutes - phaseBeginMinutes[phasesOrder[3]];
-    else phaseFragment = minutes + (1440 - phaseBeginMinutes[phasesOrder[3]]);
-    phaseFragment = map(phaseFragment,0,phaseDurationMinutes[phasesOrder[3]],0,255);
-  }else{
+    if(minutes >= phaseBeginMinutes[currentPhase]) phaseFragment = minutes - phaseBeginMinutes[currentPhase];
+    else phaseFragment = minutes + (1440 - phaseBeginMinutes[currentPhase]);
+    phaseFragment = map(phaseFragment,0,phaseDurationMinutes[currentPhase],0,255);
+  } else {
     //regular phase of day
     phaseFragment = minutes - phaseBeginMinutes[currentPhase];
-    phaseFragment = map(phaseFragment, 0, phaseDurationMinutes[phasesOrder[currentPhase]], 0, 255);
+    phaseFragment = map(phaseFragment, 0, phaseDurationMinutes[currentPhase], 0, 255);
   }
-
+  curPhaseFr = phaseFragment;
   #ifdef LIGHTCONTROLLER_DEBUG
     Serial.println("  Fragment of phase is " + String(phaseFragment));
   #endif

@@ -1,0 +1,19 @@
+p.lab {
+  float:left;
+}
+input.w3-input{
+  max-width:75px; 
+  text-align:center;
+  margin-left:auto;
+}
+form{
+  width:70%;
+  margin:auto;
+}
+.w3-button{
+  margin:20px;
+}
+button.w3-button{
+  margin:0px;
+  margin-top:20px;
+}

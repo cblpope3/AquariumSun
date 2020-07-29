@@ -51,14 +51,15 @@ class LightController{
 
     String getParam(uint8_t param);
     uint8_t curPhase, curPhaseFr;
-  private:
-    LedCandle lamp;
-
     uint16_t phaseBeginMinutes[4], phaseDurationMinutes[4];
     uint8_t phasesOrder[4];
 
     uint8_t controlMode;
+  private:
+    LedCandle lamp;
 
-    void realisticDayLight(time_t currentTime);
+
+
+    void realisticDayLight(time_t currentTime);  
 };
 #endif

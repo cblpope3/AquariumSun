@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" type="text/css" href="style.css">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css">
+
+<body onload="getSettings();">
+
+<header class="w3-container w3-theme w3-padding w3-center" id="myHeader">
+  <h1 class="w3-xxxlarge w3-animate-bottom">AQUAled</h1><h4>ПАНЕЛЬ УПРАВЛЕНИЯ</h4>
+</header>
+
+<div class="w3-row-padding w3-center w3-margin-top">
+  <div class="w3-third">
+    <div class=" w3-container" style="min-height:460px">
+      <h2>НАСТРОЙКИ ВРЕМЕНИ</h2><br>
+      <i class="fa fa-clock-o w3-margin-bottom w3-text-theme" style="font-size:120px"></i>
+      <h2 id="clock">%TIME%</h2>
+      <form action='/newtiming/' method='post'>
+        <div>
+          <p class="lab">Длительность светового дня</p>      
+          <input class="w3-input" type="text" value="%DAYDUR_VAL%" name="daydur">
+        </div>
+        <div class="w3-section">
+          <p class="lab">Конец светового дня</p>  
+          <input class="w3-input" type="text" value="%DAYEND_VAL%" name="dayend">
+        </div>
+        <div class="w3-section">
+          <p class="lab">Длительность заката/рассвета</p>
+          <input class="w3-input" type="text" value="%PHCHANGE_VAL%" name="phchange">
+        </div>
+        <input class="w3-button w3-theme" type="submit" value="Сохранить">
+      </form>
+    </div>
+  </div>
+  <div class="w3-third">
+    <div class="w3-card w3-container" style="min-height:460px">
+      <h2>НАСТРОЙКИ ОСВЕЩЕНИЯ</h2><br>
+      <i class="fa fa-lightbulb-o w3-margin-bottom w3-text-theme" style="font-size:120px"></i><br>
+      <form  action='/newbright/' method='post'>
+        <div>
+          <p class="lab">Красный</p>      
+          <input class="w3-input" type="text" value="%RMAX_VAL%" name="rmax">
+        </div>
+        <div class="w3-section">
+          <p class="lab">Зелёный</p>  
+          <input class="w3-input" type="text" value="%GMAX_VAL%" name="gmax">
+        </div>
+        <div class="w3-section">
+          <p class="lab">Синий</p>
+          <input class="w3-input" type="text" value="%BMAX_VAL%" name="bmax">
+        </div>
+        <div class="w3-section">
+          <p class="lab">Белый</p>  
+          <input class="w3-input" type="text" value="%WMAX_VAL%" name="wmax">
+        </div>
+        <div class="w3-section">
+          <p class="lab">Ночной</p>  
+          <input class="w3-input" type="text" value="%NMAX_VAL%" name="nmax">
+        </div>    
+        <input class="w3-button w3-theme" type="submit" value="Сохранить">
+      </form>
+    </div>
+  </div>
+  <div class="w3-third">
+    <div class="w3-container" style="min-height:460px">
+      <h2>ДРУГИЕ НАСТРОЙКИ</h2><br>
+      <i class="fa fa-gears w3-margin-bottom w3-text-theme" style="font-size:120px"></i>
+      <form  action='/newfreq/' method='post'>
+        <div>
+          <p class="lab">Частота ШИМ, Hz</p>      
+          <input style="" class="w3-input" type="text" value="%FREQ_VAL%" name="pwmfr">
+        </div>
+        <input class="w3-button w3-theme" type="submit" value="Сохранить">
+      </form>
+      <form  action='/newcmode/' method='post'>
+        <div>
+          <p class="lab">Режим управления</p>
+          <input class="w3-radio" id="cmodeAuto" type="radio" name="cmode" value="AUTO" %checked%>
+          <label>Автоматический</label>
+          <br>
+          <input class="w3-radio" id="cmodeManual" type="radio" name="cmode" value="MANUAL" %checked%>
+          <label>Ручной</label>
+          <br>
+        </div>  
+        <input class="w3-button w3-theme" type="submit" value="Сохранить">
+      </form>
+    </div>
+  </div>
+</div>
+
+<!--<button onclick="testFunction()" class="w3-padding-16 w3-theme w3-button w3-block w3-left-align">Test button</button>-->
+<button onclick="myAccFunc();getDebug();" class="w3-padding-16 w3-theme w3-button w3-block w3-left-align">Debug information</button>
+<div id="Debug" class="w3-row w3-border w3-hide">
+  <div class="w3-half w3-container w3-border">
+    <h4>Timing settings:</h4>  
+    <p>Night begin at: <span id="nbeg">%NBEG_VAL%</span><br>
+      Sunrise begin at: <span id="srbeg">%SRBEG_VAL%</span><br>
+      Day begin at: <span id="dbeg">%DBEG_VAL%</span><br>
+      Sunset begin at: <span id="ssbeg">%SSBEG_VAL%</span></p>
+    <p>Night duration: <span id="ndur">%NDUR_VAL%</span><br>
+      Sunrise duration: <span id="srdur">%SRDUR_VAL%</span><br>
+      Day duration: <span id="ddur">%DDUR_VAL%</span><br>
+      Sunset duration: <span id="ssdur">%SSDUR_VAL%</span></p>
+    <p>Phases order:<br>
+      <span id="ph1">%PH1_VAL%</span>, <span id="ph2">%PH2_VAL%</span>, <span id="ph3">%PH3_VAL%</span>, <span id="ph4">%PH4_VAL%</span></p>
+  </div>
+  <div class="w3-half w3-container">
+    <h4>Current condition:</h4>
+    <p>Current phase: <span id="curPh">%CURPH_VAL%</span><br>
+      Current fragment of phase: <span id="curPhFr">%PHFRAG_VAL%</span></p>
+    <h4>ESP8266 data:</h4>
+    <p>Last reset reason: <span id="resetReason">%RESETREASON_VAL%</span><br>
+      Free RAM: <span id="freeRam">%FREERAM_VAL%</span><br>
+      Maximum RAM block: <span id="maxRamBlock">%MAXBLOCK_VAL%</span></p>
+  </div>
+</div>
+
+<footer class="w3-container w3-theme-dark w3-padding-16" style="margin-top:20px">
+  <p>Designed by Nickolay Shmakolay</p>
+  <p>Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a></p>
+  <p>Version <span id="version">%VER_VAL%</span></p>
+  <div style="position:relative;bottom:55px;" class="w3-tooltip w3-right">
+    <span class="w3-text w3-theme-light w3-padding">Go To Top</span>    
+    <a class="w3-text-white" href="#myHeader"><span class="w3-xlarge">
+    <i class="fa fa-chevron-circle-up"></i></span></a>
+  </div> 
+</footer>
+</body>
+
+<script>
+  function myAccFunc() {
+    var x = document.getElementById('Debug');
+    if (x.className.indexOf("w3-show") == -1) {
+      x.className += " w3-show";
+    } else { 
+      x.className = x.className.replace(" w3-show", "");
+    }
+  }
+/*
+  function testFunction() {
+    var testvar = "100";
+    document.getElementsByName("daydur")[0].setAttribute("value",testvar);
+  }
+*/
+  function getSettings() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+	var receivedData = [];
+	receivedData = this.responseText.split(";");
+        //day times setting
+        document.getElementsByName("daydur")[0].setAttribute("value",receivedData[0]);// = this.responseText;
+        document.getElementsByName("dayend")[0].setAttribute("value",receivedData[1]);
+        document.getElementsByName("phchange")[0].setAttribute("value",receivedData[2]);
+
+        //colors setting	
+        document.getElementsByName("rmax")[0].setAttribute("value",receivedData[3]);
+        document.getElementsByName("gmax")[0].setAttribute("value",receivedData[4]);
+        document.getElementsByName("bmax")[0].setAttribute("value",receivedData[5]);
+        document.getElementsByName("wmax")[0].setAttribute("value",receivedData[6]);
+        document.getElementsByName("nmax")[0].setAttribute("value",receivedData[7]);
+
+        //frequency
+        document.getElementsByName("pwmfr")[0].setAttribute("value",receivedData[8]);
+
+        //control mode
+        if (receivedData[9]==1) {
+          //auto mode
+          document.getElementById("cmodeAuto").checked = true;
+          document.getElementById("cmodeManual").checked = false;
+        } else if (receivedData[9]==2) {
+          //manual mode
+          document.getElementById("cmodeAuto").checked = false;
+          document.getElementById("cmodeManual").checked = true;
+        } else {
+          //unknown mode
+          document.getElementById("cmodeAuto").checked = false;
+          document.getElementById("cmodeManual").checked = false;
+        }
+
+        //version
+        document.getElementById("version").innerHTML = receivedData[10];
+      }
+    };
+    xhttp.open("GET", "/getsettings/", true);
+    xhttp.send();
+  }
+  function getDebug() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+	var receivedData = [];
+	receivedData = this.responseText.split(";");
+        //day routine information
+        document.getElementById("nbeg").innerHTML = receivedData[0];
+        document.getElementById("srbeg").innerHTML = receivedData[1];
+        document.getElementById("dbeg").innerHTML = receivedData[2];
+        document.getElementById("ssbeg").innerHTML = receivedData[3];
+
+        document.getElementById("ndur").innerHTML = receivedData[4];
+        document.getElementById("srdur").innerHTML = receivedData[5];
+        document.getElementById("ddur").innerHTML = receivedData[6];
+        document.getElementById("ssdur").innerHTML = receivedData[7];
+
+        document.getElementById("ph1").innerHTML = receivedData[8];
+        document.getElementById("ph2").innerHTML = receivedData[9];
+        document.getElementById("ph3").innerHTML = receivedData[10];
+        document.getElementById("ph4").innerHTML = receivedData[11];
+
+        //current condition
+        document.getElementById("curPh").innerHTML = receivedData[12];
+        document.getElementById("curPhFr").innerHTML = receivedData[13];
+
+        //esp8266 data
+        document.getElementById("resetReason").innerHTML = receivedData[14];
+        document.getElementById("freeRam").innerHTML = receivedData[15];
+        document.getElementById("maxRamBlock").innerHTML = receivedData[16];
+      }
+    };
+    xhttp.open("GET", "/getdebug/", true);
+    xhttp.send();
+  }
+  function getTime() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        document.getElementById("clock").innerHTML = this.responseText;
+      }
+    };
+    xhttp.open("GET", "/gettime/", true);
+    xhttp.send();
+  }
+  setInterval(getTime, 1000);
+
+</script>
+
+</html>

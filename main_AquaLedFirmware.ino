@@ -2,10 +2,18 @@
 #include <Wire.h>
 #include <TimeLib.h>
 #include <EEPROM.h>
+#include <FS.h>
 #include "01-wifi_classes.h"
 #include "02-lightController.h"
 #include "htmlPage.h"
 #include "EEPROM_memory.h"
+
+#define AIR_PIN D12
+#define CO2_PIN D11
+#define airOn() digitalWrite(AIR_PIN, HIGH)
+#define airOff() digitalWrite(AIR_PIN, LOW)
+#define co2On() digitalWrite(CO2_PIN, LOW)
+#define co2Off() digitalWrite(CO2_PIN, HIGH)
 
 //#define TEST_MODE
 #define GENERAL_MODE
@@ -25,15 +33,23 @@ void syncTime(void);
 void lightRefresh(void);
 void STAWebServerInit(void);
 void STAHandleRoot(void);
+void handleSafeMode(void);
+void sendTimeString(void);
+void sendSettings(void);
+void sendDebug(void);
 void handleTiming(void);
 void handleBright(void);
 void handleFrequency(void);
 void handleControl(void);
+void initCompressor(void);
+void handleCompressor (uint8_t curPhase);
 
 void setup() {
 
   Serial.begin(9600);
   Serial.println("\n=============16 channel PWM test!=============");
+
+  initCompressor();
 
   ledDriver.begin();
   light.initialize();
@@ -41,6 +57,12 @@ void setup() {
   #ifdef EEPROM_DEBUG
   printEEPROMContent();
   #endif
+
+  // Initialize SPIFFS
+  if(!SPIFFS.begin()){
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
 
   wifiSTA.connectToWifi("","");  
   STAWebServerInit();
@@ -72,6 +94,7 @@ void loop() {
       syncTime();  
     }
   }
+  handleCompressor(light.curPhase);
   yield();
 }
 
@@ -138,17 +161,25 @@ void lightRefresh(void){
 }
 
 void STAWebServerInit(void){
-  if (MDNS.begin("aquaLed")) {
+  if (MDNS.begin("aqualed")) {
     #ifdef WEB_SERVER_DEBUG
     Serial.println("MDNS responder started");
     #endif
   }
-  server.on("/", STAHandleRoot);
+  
+  server.serveStatic("/", SPIFFS, "/index.html");
+  server.serveStatic("/style.css", SPIFFS, "/style.css");
+  server.on("/safemode/", handleSafeMode);
   server.on("/newtiming/", handleTiming);
   server.on("/newbright/", handleBright);
   server.on("/newfreq/", handleFrequency);
   server.on("/newcmode/", handleControl);
+  server.on("/gettime/", sendTimeString);
+  server.on("/getsettings/", sendSettings);
+  server.on("/getdebug/", sendDebug);
   server.begin();
+
+  MDNS.addService("http", "tcp", 80);
   return;
 }
 
@@ -157,6 +188,80 @@ void STAHandleRoot(void){
   Serial.println("  wifi client requested root web-page!");
   #endif
   server.send(200, "text/html", makeMainHtmlPage());
+}
+
+void handleSafeMode(void){
+  #ifdef WEB_SERVER_DEBUG
+  Serial.println("WEB SERVER\n  client requested safe mode web page.");
+  #endif
+  server.send(200, "text/html", makeMainHtmlPage());
+}
+
+void sendTimeString(void){
+  #ifdef WEB_SERVER_DEBUG
+  Serial.println("WEB SERVER\n  client requested current time");
+  #endif
+  String currentTime="";
+  if (hour()<10) currentTime += "0";
+  currentTime += String(hour())+":";
+  if (minute()<10) currentTime += "0";
+  currentTime += String(minute()) + ":";
+  if (second()<10) currentTime += "0";
+  currentTime += String(second());
+  server.send(200, "text/plain", currentTime);
+}
+
+void sendSettings(void){
+  #ifdef WEB_SERVER_DEBUG
+  Serial.println("WEB SERVER\n  client requested settings");
+  #endif
+  String currentSettings = light.getParam(DAY_PH_DUR) + ";" + light.getParam(DAY_PH_END) + ";" + light.getParam(PH_CHANGE_DUR) + ";" + \
+    light.getParam(RMAX) + ";" + light.getParam(GMAX) + ";" + light.getParam(BMAX) + ";" + light.getParam(WMAX) + ";" + light.getParam(NMAX) + ";" + \
+    light.getParam(FREQ) + ";" + \
+    light.getParam(CON_MODE) + ";" + \
+    "0.4";
+
+  server.send(200, "text/plain", currentSettings);
+}
+
+void sendDebug(void){
+  #ifdef WEB_SERVER_DEBUG
+  Serial.println("WEB SERVER\n  client requested debug information");
+  #endif
+  String phasesOrderString[4], phaseBegin[4];
+  for (int i=0;i<4;i++) {
+    switch (light.phasesOrder[i]){
+      case NIGHT:
+        phasesOrderString[i] = "Night";
+        break;
+      case SUNRISE:
+        phasesOrderString[i] = "Sunrise";
+        break;
+      case DAY:
+        phasesOrderString[i] = "Day";
+        break;
+      case SUNSET:
+        phasesOrderString[i] = "Sunset";
+        break;
+      default:
+        phasesOrderString[i] = "NAN";
+    }
+  }
+  for (int i=0;i<4;i++){
+    if (light.phaseBeginMinutes[i]/60 < 10) phaseBegin[i]="0";
+    phaseBegin[i] += light.phaseBeginMinutes[i]/60;
+    phaseBegin[i] += ":";
+    if (light.phaseBeginMinutes[i]%60 < 10) phaseBegin[i]+="0";
+    phaseBegin[i] += light.phaseBeginMinutes[i]%60;
+  }
+  
+  String debugInfo = phaseBegin[0] + ";" + phaseBegin[1] + ";" + phaseBegin[2] + ";" + phaseBegin[3] + ";" + \
+    String(light.phaseDurationMinutes[0]) + ";" + String(light.phaseDurationMinutes[1]) + ";" + String(light.phaseDurationMinutes[2]) + ";" + String(light.phaseDurationMinutes[3]) + ";" + \
+    phasesOrderString[0] + ";" + phasesOrderString[1] + ";" + phasesOrderString[2] + ";" + phasesOrderString[3] + ";" + \
+    String(light.curPhase) + ";" + String(light.curPhaseFr) + ";" + \
+    ESP.getResetReason() + ";" + String(ESP.getFreeHeap()) + ";" + String(ESP.getMaxFreeBlockSize());
+
+  server.send(200, "text/plain", debugInfo);
 }
 
 void handleTiming(void){
@@ -365,6 +470,33 @@ void handleControl(void){
     lightRefresh();
     String message = "New control mode applied successfully!\nNew control mode: "+String(newControlMode);
     server.send(200, "text/plain", message);
+  }
+  return;
+}
+void initCompressor(void){
+  pinMode(AIR_PIN, OUTPUT);
+  pinMode(CO2_PIN, OUTPUT);
+
+  airOn();
+  co2Off();
+}
+void handleCompressor (uint8_t curPhase){
+  static uint8_t prevPhase = 255;
+  if (curPhase == prevPhase) return;
+  else {
+    prevPhase = curPhase;
+    if (curPhase == DAY){
+      airOff();
+      co2On();
+    }
+    else if (curPhase == NIGHT){
+      airOn();
+      co2Off();
+    }
+    else{
+      airOff();
+      co2Off();
+    }
   }
   return;
 }
